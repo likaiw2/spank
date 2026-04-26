@@ -46,20 +46,24 @@ var haloAudio embed.FS
 //go:embed audio/lizard/*.mp3
 var lizardAudio embed.FS
 
+//go:embed audio/hats_factory_embed/*.mp3
+var hatsFactoryAudio embed.FS
+
 var (
-	sexyMode     bool
-	haloMode     bool
-	lizardMode   bool
-	customPath   string
-	customFiles  []string
-	fastMode     bool
-	minAmplitude float64
-	cooldownMs   int
-	stdioMode      bool
-	volumeScaling  bool
-	paused         bool
-	pausedMu       sync.RWMutex
-	speedRatio     float64
+	sexyMode        bool
+	haloMode        bool
+	lizardMode      bool
+	hatsFactoryMode bool
+	customPath      string
+	customFiles     []string
+	fastMode        bool
+	minAmplitude    float64
+	cooldownMs      int
+	stdioMode       bool
+	volumeScaling   bool
+	paused          bool
+	pausedMu        sync.RWMutex
+	speedRatio      float64
 )
 
 // sensorReady is closed once shared memory is created and the sensor
@@ -217,7 +221,7 @@ func (st *slapTracker) getFile(score float64) string {
 	// At sustained max slap rate, score reaches ssMax which maps
 	// to the final file.
 	maxIdx := len(st.pack.files) - 1
-	idx := min(int(float64(len(st.pack.files)) * (1.0 - math.Exp(-(score-1)/st.scale))), maxIdx)
+	idx := min(int(float64(len(st.pack.files))*(1.0-math.Exp(-(score-1)/st.scale))), maxIdx)
 	return st.pack.files[idx]
 }
 
@@ -236,7 +240,9 @@ within a minute, the more intense the sounds become.
 Use --halo to play random audio clips from Halo soundtracks on each slap.
 
 Use --lizard for lizard mode. Like sexy mode, the more you slap
-within a minute, the more intense the sounds become.`,
+within a minute, the more intense the sounds become.
+
+Use --hats-factory to play random clips from audio/hats_Factory on each slap.`,
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tuning := defaultTuning()
@@ -258,6 +264,7 @@ within a minute, the more intense the sounds become.`,
 	cmd.Flags().BoolVarP(&sexyMode, "sexy", "s", false, "Enable sexy mode")
 	cmd.Flags().BoolVarP(&haloMode, "halo", "H", false, "Enable halo mode")
 	cmd.Flags().BoolVarP(&lizardMode, "lizard", "l", false, "Enable lizard mode (escalating intensity)")
+	cmd.Flags().BoolVar(&hatsFactoryMode, "hats-factory", false, "Enable hats factory mode")
 	cmd.Flags().StringVarP(&customPath, "custom", "c", "", "Path to custom MP3 audio directory")
 	cmd.Flags().BoolVar(&fastMode, "fast", false, "Enable faster detection tuning (shorter cooldown, higher sensitivity)")
 	cmd.Flags().StringSliceVar(&customFiles, "custom-files", nil, "Comma-separated list of custom MP3 files")
@@ -287,11 +294,14 @@ func run(ctx context.Context, tuning runtimeTuning) error {
 	if lizardMode {
 		modeCount++
 	}
+	if hatsFactoryMode {
+		modeCount++
+	}
 	if customPath != "" || len(customFiles) > 0 {
 		modeCount++
 	}
 	if modeCount > 1 {
-		return fmt.Errorf("--sexy, --halo, --lizard, and --custom/--custom-files are mutually exclusive; pick one")
+		return fmt.Errorf("--sexy, --halo, --lizard, --hats-factory, and --custom/--custom-files are mutually exclusive; pick one")
 	}
 
 	if tuning.minAmplitude < 0 || tuning.minAmplitude > 1 {
@@ -322,6 +332,8 @@ func run(ctx context.Context, tuning runtimeTuning) error {
 		pack = &soundPack{name: "halo", fs: haloAudio, dir: "audio/halo", mode: modeRandom}
 	case lizardMode:
 		pack = &soundPack{name: "lizard", fs: lizardAudio, dir: "audio/lizard", mode: modeEscalation}
+	case hatsFactoryMode:
+		pack = &soundPack{name: "hats_factory", fs: hatsFactoryAudio, dir: "audio/hats_factory_embed", mode: modeRandom}
 	default:
 		pack = &soundPack{name: "pain", fs: painAudio, dir: "audio/pain", mode: modeRandom}
 	}
@@ -479,10 +491,10 @@ var speakerMu sync.Mutex
 // (base 2): -3.0 is ~1/8 volume, 0.0 is full volume.
 func amplitudeToVolume(amplitude float64) float64 {
 	const (
-		minAmp   = 0.05  // softest detectable
-		maxAmp   = 0.80  // treat anything above this as max
-		minVol   = -3.0  // quietest playback (1/8 volume with base 2)
-		maxVol   = 0.0   // full volume
+		minAmp = 0.05 // softest detectable
+		maxAmp = 0.80 // treat anything above this as max
+		minVol = -3.0 // quietest playback (1/8 volume with base 2)
+		maxVol = 0.0  // full volume
 	)
 
 	// Clamp

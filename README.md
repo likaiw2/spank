@@ -50,6 +50,9 @@ sudo spank --sexy
 # Halo mode — plays Halo death sounds when slapped
 sudo spank --halo
 
+# Hats Factory mode — plays random clips from audio/hats_Factory
+sudo spank --hats-factory
+
 # Fast mode — faster polling and shorter cooldown
 sudo spank --fast
 sudo spank --sexy --fast
@@ -78,6 +81,8 @@ sudo spank --sexy --speed 0.6
 **Sexy mode** (`--sexy`): Tracks slaps within a rolling 5-minute window. The more you slap, the more intense the audio response. 60 levels of escalation.
 
 **Halo mode** (`--halo`): Randomly plays from death sound effects from the Halo video game series when a slap is detected.
+
+**Hats Factory mode** (`--hats-factory`): Randomly plays from the clips in `audio/hats_Factory` when a slap is detected.
 
 **Custom mode** (`--custom`): Randomly plays MP3 files from a custom directory you specify.
 
